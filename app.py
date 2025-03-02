@@ -1,48 +1,67 @@
 import streamlit as st
 import os
-from pdf_processor import process_pdf, answer_question  # Import necessary functions
-import asyncio
+from pdf_processor import process_pdf, answer_question
+import time
 
-# Ensure an event loop exists
-try:
-    asyncio.get_running_loop()
-except RuntimeError:
-    asyncio.set_event_loop(asyncio.new_event_loop())
+# Set page config
+st.set_page_config(page_title="📄 PDF Q&A System", page_icon="📄", layout="wide")
+
+# Custom CSS
+st.markdown(
+    """
+    <style>
+    .stButton button {
+        background-color: #4CAF50;
+        color: white;
+        font-size: 16px;
+        padding: 10px 24px;
+        border-radius: 8px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Title
 st.title("📄 PDF Q&A System")
+st.write("🔍 Ask questions and get instant answers from your PDFs!")
 
-# Ensure 'uploads' directory exists
-UPLOADS_DIR = "uploads"
-if not os.path.exists(UPLOADS_DIR):
-    os.makedirs(UPLOADS_DIR)
+# Sidebar
+with st.sidebar:
+    st.header("Instructions")
+    st.write("1. Upload a PDF file.")
+    st.write("2. Ask a question about the document.")
+    st.write("3. Get instant answers!")
+    st.write("4. Enjoy!")
 
-# 🔹 Upload PDF
-uploaded_file = st.file_uploader("Upload a PDF", type="pdf")
+# File uploader
+st.write("### Upload a PDF document to get started:")
+uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
-    # 🔹 Save file temporarily
+    # Save file temporarily
     pdf_path = os.path.join("uploads", uploaded_file.name)
-    
     with open(pdf_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
 
-    # 🔹 Process PDF & Build FAISS Index
-    with st.spinner("Processing PDF and building FAISS index..."):
+    # Process PDF
+    with st.spinner("Processing PDF..."):
         process_pdf(pdf_path)
-    st.success("✅ PDF processed and FAISS index saved!")
+        st.success("PDF processed successfully!")
 
-    # 🔹 Let user ask questions after processing
-    query = st.text_input("Ask a question about the document:")
-    
-    # 🔹 Add a button to trigger the answer generation
+    # Ask questions
+    st.write("### Ask a question about the document:")
+    query = st.text_input("Enter your question:", placeholder="e.g., What is the main topic?")
+
     if st.button("Get Answer"):
         if query:
             with st.spinner("Generating answer..."):
                 try:
-                    answer = answer_question(query)  # Get answer using the QA system
-                    st.write(f"**Answer:** {answer}")
+                    answer = answer_question(query, k=5)
+                    st.markdown(f"**Answer:** {answer}")
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
         else:
             st.warning("Please enter a question.")
+else:
+    st.warning("Please upload a PDF file.")
